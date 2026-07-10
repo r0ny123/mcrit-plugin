@@ -199,6 +199,12 @@ The tag-driven release workflow validates metadata, builds `mcrit-ida-<version>.
 
 ##  Version History
 
+### v1.1.7 (2026-07-10)
+- Added `sample_group_only` parameter to restrict matching results to samples within the current sample group via MCRIT server-side filtering.
+- Introduced comprehensive pytest-based test coverage with isolated test infrastructure for configuration and client logic validation.
+- Enhanced code documentation with comprehensive docstrings for critical code paths and test utilities.
+- Improved GitHub Actions security posture with hardened checkout steps.
+
 ### v1.1.6 (2026-03-23)
 - Updated HCLI-facing plugin metadata for release packaging, including the `1.1.6` version, `IDA 9.0+` minimum, repository URL, and request-timeout setting.
 - Added repo-local packaging and validation scripts for metadata sync, settings sync, Ruff checks, and minimal plugin ZIP creation.
