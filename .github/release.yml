@@ -1,0 +1,19 @@
+# Not a workflow: GitHub reads the generated-release-notes configuration only from this path.
+changelog:
+  exclude:
+    authors:
+      - github-actions[bot]
+  categories:
+    - title: Changes
+      labels:
+        - "*"
+      exclude:
+        labels:
+          - dependencies
+          - github_actions
+          - pre_commit
+    - title: Dependency and tooling updates
+      labels:
+        - dependencies
+        - github_actions
+        - pre_commit
