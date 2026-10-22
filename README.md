@@ -1,23 +1,41 @@
-# MCRIT Plugin
+# MCRIT plugins for IDA Pro, Binary Ninja and Ghidra
 
-[![IDA Version](https://img.shields.io/badge/IDA-9.0%2B-blue.svg)](https://hex-rays.com/ida-pro/)
-[![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)](LICENSE)
-[![HCLI Compatible](https://img.shields.io/badge/HCLI-compatible-brightgreen.svg)](https://hcli.docs.hex-rays.com/)
+[![IDA Pro 9.0+](https://img.shields.io/badge/IDA_Pro-9.0%2B-4c6ef5)](#ida-pro)
+[![Binary Ninja 6.0+](https://img.shields.io/badge/Binary_Ninja-6.0%2B-4c6ef5)](#binary-ninja)
+[![Ghidra 12.0+](https://img.shields.io/badge/Ghidra-12.0%2B-4c6ef5)](#ghidra)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-2b8a3e)](LICENSE)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/familiary/mcrit-plugin)
 
-Client for [MCRIT](https://github.com/familiary/mcrit), the MinHash-based code similarity server, for IDA Pro, Binary Ninja and Ghidra. It exports your database as an SMDA report, uploads it, and shows matching blocks, functions and labels from the server next to your analysis.
+See which code in your binary you have seen before. These plugins connect your disassembler to an
+[MCRIT](https://github.com/familiary/mcrit) server, the MinHash-based code similarity toolkit, and
+show matching functions, blocks, samples and names right next to your analysis.
 
-- Block and function matches for the current cursor position
-- Function overview with label import and conflict resolution
-- Matching jobs against the whole server
-- YARA string builder from a selection
-- CFG view of remote matched functions
+![The Function Scope following the cursor in IDA Pro](docs/images/ida-live-function-scope.gif)
+
+- **Function and block matches** for wherever your cursor is, as you move.
+- **Function overview** of the whole sample, with names from the matches you can import.
+- **Sample matches** against everything on the server, grouped by family.
+- **Matched code highlighted** in your own listing, and the remote function's graph one click away.
+- **YARA strings** built from a selection.
+
+One code base, the same toolbar and tabs in all three:
+
+| | [IDA Pro](#ida-pro) | [Binary Ninja](#binary-ninja) | [Ghidra](#ghidra) |
+| :--- | :--- | :--- | :--- |
+| Requires | IDA 9.0 or newer | Binary Ninja 6.0 or newer | Ghidra 12.0 or newer, PyGhidra |
+| Install | `hcli plugin install mcrit-ida` | Extension Manager: **MCRIT** | Extension ZIP |
+| Open | Edit → Plugins → MCRIT4IDA, <kbd>Ctrl</kbd>+<kbd>F4</kbd> | MCRIT sidebar | Tools → MCRIT, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> |
+| Settings | Settings button, or HCLI | Settings button, or Settings → MCRIT | Edit → Tool Options → MCRIT |
+
+You need an MCRIT server to talk to. To run your own, [docker-mcrit](https://github.com/familiary/docker-mcrit)
+brings up the whole stack, and [mcrit-data](https://github.com/familiary/mcrit-data) has reference
+data to fill it with.
 
 ## IDA Pro
 
-Requires IDA 9.0 or newer.
+![MCRIT next to IDA's graph view, matching a function against two Lua versions](docs/images/ida-function-scope.png)
 
-### Install with HCLI
+### Install
 
 ```bash
 python -m pip install --upgrade ida-hcli
@@ -26,142 +44,187 @@ hcli plugin install mcrit-ida
 
 `hcli plugin upgrade mcrit-ida` and `hcli plugin uninstall mcrit-ida` work as usual.
 
-Coming from 1.x: `hcli plugin upgrade` does not find 2.0.0, because 1.x was installed from the
-repository's old home (`danielplohmann/mcrit-plugin`). Uninstall it, then install again:
+<details>
+<summary>Other ways to install</summary>
+
+**Manually.** Extract a release ZIP into `$IDAUSR/plugins/mcrit-ida/` and install the dependencies
+with IDA's Python, then restart IDA:
 
 ```bash
-hcli plugin uninstall mcrit-ida
-hcli plugin install mcrit-ida
+python -m pip install "smda>=4.3.10" "ida-settings>=3.5.1" requests
 ```
 
-To install a local build instead:
+A repository checkout does not work directly, because the packager puts `ida-plugin.json` and
+`ida_mcrit.py` at the archive root.
+
+**From a local build.**
 
 ```bash
 python scripts/ida/package_plugin.py --repo . --output ../mcrit-ida.zip
 hcli plugin install ../mcrit-ida.zip
 ```
 
-In CI or a headless shell, pass settings with `--config mcrit_server=https://mcrit.example.com/api/` (and `mcritweb_api_token`, `mcritweb_username`, `mcrit_request_timeout`) so `hcli` doesn't prompt.
+**Offline.** Each release has a wheelhouse bundle. Unpack it and run
+`python -m pip install --no-index --find-links=. -r requirements.txt`.
 
-### Install manually
+**Coming from 1.x.** 1.x was installed from the repository's old home, so `hcli plugin upgrade`
+does not find 2.x. Run `hcli plugin uninstall mcrit-ida`, then install again.
 
-1. Extract a release ZIP into `$IDAUSR/plugins/mcrit-ida/`. A repository checkout won't work directly: the packager puts `ida-plugin.json` and `ida_mcrit.py` at the archive root.
-2. Install the dependencies with IDA's Python: `python -m pip install "smda>=4.3.10" "ida-settings>=3.5.1" requests`
-3. Restart IDA.
+**Notes.**
+- SMDA 4.3.10 is the last release for Python 3.10, so an IDA running Python 3.10 stays on it.
+- IDA 9.4 may ask once whether to enable PyQt5 shims when the plugin loads; answer No. The
+  question comes from the `ida-settings` dependency, and the plugin uses PySide6.
 
-SMDA 4.3.10 is the last release for Python 3.10, so an IDA running Python 3.10, and the release's 3.10 wheelhouse bundle, get that version and none of the SMDA fixes since.
+</details>
 
-IDA 9.4 may ask once whether to enable PyQt5 shims when the plugin loads; answer No. The prompt comes from the `ida-settings` dependency, and the plugin itself uses PySide6.
+### Connect
 
-For offline machines, each release has a wheelhouse bundle: unpack it and run `python -m pip install --no-index --find-links=. -r requirements.txt`.
+Click **Settings** on the MCRIT toolbar, also at Edit → Plugins → MCRIT4IDA Settings...
+- With [ida-settings-editor](https://github.com/williballenthin/ida-settings) installed, it opens
+  the Plugin Settings Manager on mcrit-ida.
+- Without it, a small form asks for the server, API token, username and timeout.
 
-### Configure
+From a shell, HCLI sets the same values:
 
-Settings are handled by [ida-settings](https://github.com/williballenthin/ida-settings):
+```bash
+hcli plugin config mcrit-ida set mcrit_server https://mcrit.example.com/api/
+```
 
-- HCLI: `hcli plugin config mcrit-ida set mcrit_server https://mcrit.example.com/api/` (`list`, `get`, `export` and `import` also work)
-- GUI: the Settings button on the MCRIT toolbar (also Edit → Plugins → MCRIT4IDA Settings...). With `ida-settings-editor` installed it opens the Plugin Settings Manager on mcrit-ida; without it, a small form for the server, API token, username and timeout.
-- File: put a `config_override.json` next to `ida_mcrit.py`. Its keys take precedence over the other two, so keep only the ones you want to force; `docs/config_override.json.template` shows the format, and the plugin prints the keys it forces when it loads.
+In CI, pass them at install time so HCLI doesn't prompt:
+`hcli plugin install mcrit-ida --config mcrit_server=https://mcrit.example.com/api/`.
 
 ### Use
 
-1. Open a binary and start MCRIT4IDA from Edit → Plugins, or press Ctrl-F4.
-2. Use the toolbar to convert the database to an SMDA report, upload it, and fetch a matching result.
-3. Browse the results in the Block Scope, Function Scope, Function Overview and Sample Match Summary tabs.
-   Opening a match's graph tints the matched blocks of the local function in IDA's disassembly;
-   Edit → Plugins → MCRIT4IDA Clear Match Coloring removes the tint.
+1. Open a binary and start MCRIT4IDA from Edit → Plugins, or press <kbd>Ctrl</kbd>+<kbd>F4</kbd>.
+2. On the toolbar, convert the database to an SMDA report, upload it, and fetch a matching result.
+3. Browse the Block Scope, Function Scope, Function Overview and Sample Match Summary tabs.
+
+Opening a match's graph highlights the matched blocks of your function in IDA's own views. The
+highlight is only drawn, never saved to the database, and Edit → Plugins → MCRIT4IDA Clear Match
+Coloring removes it.
+
+![The Function Overview in IDA, with names from 636 matched functions](docs/images/ida-function-overview.png)
 
 ## Binary Ninja
 
-Requires Binary Ninja 6.0 (build 10601) or newer.
+![The MCRIT sidebar in Binary Ninja, next to the graph of a matched function](docs/images/binja-function-scope.png)
 
 ### Install
 
-Install MCRIT from the Extension Manager, or clone this repository into your Binary Ninja user plugins folder and install `requirements.txt` into Binary Ninja's Python. For offline machines, each release has a `binja` wheelhouse bundle. It is built for Windows and Python 3.11 to 3.13 only, and is installed the same way as the IDA bundle.
+Open the Extension Manager (command palette: **Manage Extensions**), search for **MCRIT** and
+install it. Binary Ninja installs the Python dependencies with it.
 
-### Configure
+<details>
+<summary>Other ways to install</summary>
 
-Settings are under Settings → MCRIT, with the same keys as the IDA plugin; the Settings button on the sidebar toolbar and Plugins → MCRIT → Settings open them there. Where a system keychain is available, an API token entered there is moved into it and the field is cleared; otherwise the token stays in the Settings entry. Plugins → MCRIT → Clear Stored API Token removes it. The sidebar reads the connection settings (server, token, username, timeout) when it opens for a file, and again when you close the Settings tab its button opened (a different server only until the sidebar holds results from the current one); after changing them any other way, reopen the file. A `config_override.json` in the plugin's folder, next to `plugin.json`, takes precedence as it does in IDA.
+**From a clone.** Clone this repository into your Binary Ninja user plugins folder (Plugins → Open
+Plugin Folder...), then install `requirements.txt` into Binary Ninja's Python.
+
+**Offline.** Each release has a `binja` wheelhouse bundle, built for Windows and Python 3.11 to
+3.13. Install it like the IDA bundle.
+
+</details>
+
+### Connect
+
+Click **Settings** on the MCRIT toolbar, or open Plugins → MCRIT → Settings. Both open Binary
+Ninja's Settings on the MCRIT group.
+- Where a system keychain is available, an API token entered there moves into the keychain.
+  Plugins → MCRIT → Clear Stored API Token removes it.
+- Closing that Settings tab reconnects with the new values. After changing them some other way,
+  reopen the file.
 
 ### Use
 
-Open the MCRIT sidebar, or run any MCRIT action from the command palette or Plugins → MCRIT. It has the same toolbar and tabs as the IDA plugin. Reports are exported from Binary Ninja's own analysis, and remote CFGs open as graph reports.
+Open the MCRIT sidebar, or run any MCRIT action from the command palette or Plugins → MCRIT.
+Reports come from Binary Ninja's own analysis, matched blocks are highlighted in your graph and
+linear views, and remote CFGs open as graph reports.
 
 ## Ghidra
 
-Requires Ghidra 12.0 or newer, started in PyGhidra mode, on the JDK that Ghidra version asks for
-(21 up to 12.1, 25 from 12.2). The Ghidra plugin is new and has not been released yet; its version
-is `0.1.0`.
+> [!NOTE]
+> The Ghidra plugin is new and not released yet; its version is 0.1.0. Until the first release,
+> you build the extension ZIP yourself, as shown below.
+
+![The MCRIT window docked in Ghidra's CodeBrowser, in the Flat Dark theme](docs/images/ghidra-function-scope.png)
 
 ### Install
 
-1. Get the extension ZIP. Until the first release, build it from a clone of this repository:
-   `python scripts/ghidra/package_extension.py --repo . --output mcrit-ghidra.zip --ghidra-version <your Ghidra version>`.
-   Runs of the Ghidra CI workflow also keep one as the `mcrit-ghidra-extension` artifact, built for
-   the Ghidra version CI tests with.
-2. Start Ghidra in PyGhidra mode: `support/pyghidraRun` (Linux, macOS) or
-   `support\pyghidraRun.bat` (Windows). The first start offers to set up PyGhidra in a virtual
-   environment in Ghidra's settings folder.
-3. In the project window, choose File → Install Extensions, click +, pick the ZIP and restart
-   Ghidra. If the ZIP was built for another Ghidra version, Ghidra warns about it and lets you
-   install it anyway; the plugin does not depend on the exact version.
-4. Install the dependencies into PyGhidra's environment, e.g. on Linux
-   `~/.config/ghidra/ghidra_<version>/venv/bin/python -m pip install "smda>=4.9.0" requests`.
-   When they are missing, MCRIT shows the exact command for your installation.
+Ghidra runs the plugin in PyGhidra mode, on the JDK it asks for: 21 up to Ghidra 12.1, 25 from
+12.2.
+
+1. Build the extension ZIP from a clone of this repository:
+
+   ```bash
+   python scripts/ghidra/package_extension.py --repo . --output mcrit-ghidra.zip --ghidra-version <your Ghidra version>
+   ```
+
+2. Start Ghidra with `support/pyghidraRun` (`support\pyghidraRun.bat` on Windows). The first start
+   offers to set up PyGhidra's Python environment.
+3. In the project window, open File → Install Extensions, click **+**, pick the ZIP and restart
+   Ghidra. A ZIP built for another Ghidra version installs too, after a warning.
+4. Install the dependencies into PyGhidra's environment. MCRIT shows the exact command for your
+   install the first time it misses them. On Linux, for example:
+
+   ```bash
+   ~/.config/ghidra/ghidra_<version>/venv/bin/python -m pip install "smda>=4.9.0" requests
+   ```
+
 5. In the CodeBrowser, open Window → Script Manager, find `MCRIT.py` in the MCRIT category and
-   tick its "In Tool" box. This adds Tools → MCRIT and the key binding Ctrl+Shift+M; Ghidra
-   creates script menu entries only for scripts marked this way.
+   tick **In Tool**. That adds Tools → MCRIT and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>.
 
-To run the plugin straight from a clone instead, skip steps 1 and 3 and add
-`mcrit_plugin/ghidra/ghidra_scripts` from the clone under Script Manager → Manage Script
-Directories.
+<details>
+<summary>Run it straight from a clone</summary>
 
-The first start compiles a small Java class that hosts the MCRIT window, with the JDK Ghidra runs
-on, into Ghidra's settings folder. It is rebuilt automatically for a new plugin or Ghidra version.
+Skip steps 1 and 3. Instead, add `mcrit_plugin/ghidra/ghidra_scripts` from the clone under Script
+Manager → Manage Script Directories.
 
-### Configure
+</details>
 
-Settings are under Edit → Tool Options → MCRIT: the same settings as in the other plugins, listed by
-their display names. The API token field is masked, but Ghidra stores it with the tool's options in
-plain text. A `config_override.json` in the extension's folder (`Extensions/MCRIT` in Ghidra's
-settings folder), or in the clone's root, takes precedence as it does in IDA. Reinstalling the
-extension replaces that folder, so keep a copy of the file.
-Settings are read whenever they are used, except the connection settings (server, token, username,
-timeout), which are read when MCRIT opens for a program; reopen the program after changing those.
+The first start compiles a small Java class for the MCRIT window into Ghidra's settings folder.
+It is rebuilt by itself for a new plugin or Ghidra version.
+
+### Connect
+
+Open Edit → Tool Options → MCRIT. The connection settings are read when MCRIT opens for a program,
+so reopen the program after changing them. The API token field is masked, but Ghidra stores it with
+the tool's options in plain text.
 
 ### Use
 
-Run Tools → MCRIT, or the script from the Script Manager. The window docks into the CodeBrowser
-with the same toolbar and tabs as the other plugins, one session per open program; it follows the
-active program and offers to open MCRIT for a program that has no session yet. Reports are exported
-from Ghidra's own analysis, matched local blocks are tinted in the listing (a marker, not saved with
-the program; Clear Match Coloring in the MCRIT window's menu removes it), and remote CFGs open
-in Ghidra's graph view.
+Run Tools → MCRIT. The window docks into the CodeBrowser with one session per open program and
+follows the program you switch to. Matched blocks are marked in the listing without changing the
+program, Clear Match Coloring in the MCRIT window's menu removes the marks, and remote CFGs open in
+Ghidra's graph view.
 
 ## Settings
 
-The keys below are the ones most often changed; `mcrit_plugin/core/settings.json` declares all of
-them, with their types and defaults.
+All three plugins share the same settings; [settings.json](mcrit_plugin/core/settings.json) lists
+every one with its type and default. These are the ones you will set first:
 
-| Setting | Description | Example |
+| Setting | What it is | Example |
 | :--- | :--- | :--- |
 | `mcrit_server` | Server URL | `https://mcrit.example.com/api/` |
-| `mcritweb_api_token` | MCRITweb API token; the username is inferred from it | `eyJ0eXAi...` |
-| `mcritweb_username` | Username (optional) | `analyst` |
-| `mcrit_request_timeout` | Request timeout in seconds | `10` |
+| `mcritweb_api_token` | MCRITweb API token; it implies the username | `eyJ0eXAi...` |
+| `mcritweb_username` | Username, optional | `analyst` |
+| `mcrit_request_timeout` | Request timeout in seconds, 0 for none | `10` |
+
+To force settings regardless of what the disassembler stores, put a `config_override.json` in the
+plugin's folder. That is next to `ida_mcrit.py` in IDA, next to `plugin.json` in Binary Ninja, and
+in the extension's folder (`Extensions/MCRIT` in Ghidra's settings folder) or the clone's root in
+Ghidra. [The template](docs/config_override.json.template) shows the format. Reinstalling the
+Ghidra extension replaces its folder, so keep a copy there.
 
 ## Development
 
-See [docs/development.md](docs/development.md) for the layout, checks, integration tests and release process.
-
-## Version History
-
-See [CHANGELOG.md](CHANGELOG.md) for the full release history.
+[docs/development.md](docs/development.md) covers the layout, the checks, the integration tests and
+how releases are made. [CHANGELOG.md](CHANGELOG.md) has the release history.
 
 ## License
 
-GPL-3.0, see [LICENSE](LICENSE). The third-party icons and their licences are listed in
-[icons/NOTICE.md](icons/NOTICE.md).
+GPL-3.0, see [LICENSE](LICENSE). The icons come from [Lucide](https://lucide.dev) and
+[YARA-X](https://github.com/VirusTotal/yara-x); [icons/NOTICE.md](icons/NOTICE.md) has their
+licences. IDA Pro, Binary Ninja and Ghidra are trademarks of their respective owners.
 
 ## Authors
 
