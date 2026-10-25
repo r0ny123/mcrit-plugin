@@ -10,7 +10,7 @@ See which code in your binary you have seen before. These plugins connect your d
 [MCRIT](https://github.com/familiary/mcrit) server, the MinHash-based code similarity toolkit, and
 show matching functions, blocks, samples and names right next to your analysis.
 
-![The Function Scope following the cursor in IDA Pro](docs/images/ida-live-function-scope.gif)
+![The Function Scope following the cursor in IDA Pro](docs/images/ida-live-function-scope.png)
 
 - **Function and block matches** for wherever your cursor is, as you move.
 - **Function overview** of the whole sample, with names from the matches you can import.
